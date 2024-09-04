@@ -17,16 +17,12 @@ def generate_full_completion(model: str, prompt: str) -> dict[str, str]:
     )
     return json.loads(response.text)
 
-def get_weather(city: str) -> str:
-    """Get the current weather given a city."""
-    print(f'Getting weather for {city}.')
-
-
-def read_text_file(file_name: str) -> None:
+def write_csv_from_text(file_name: str) -> None:
     """
     Read the specified text file given the file name.
     remove the table header and footer, and save it as a new CSV file.
     """
+
     # 获取当前文件所在目录的绝对路径
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -103,8 +99,7 @@ def function_to_json(func):
 def main():
     functions_prompt = f"""
 You have access to the following tools:
-{function_to_json(get_weather)}
-{function_to_json(read_text_file)}
+{function_to_json(write_csv_from_text)}
 
 You must follow these instructions:
 Always select one or more of the above tools based on the user query
@@ -124,12 +119,12 @@ User Query:
     GPT_MODEL = "mistral:latest"
 
     prompts = [
-        "What's the weather like in Beijing?",
-        "Read the text file 'permanent_population.txt', remove the table header and footer, save as a new CSV file",
+        "Read from the text file 'permanent_population.txt' and write as csv file: remove the table header and footer, save as a new CSV file",
     ]
 
     for prompt in prompts:
-        print(f"❓{prompt}")
+
+        print(f"🤔{prompt}")
         question = functions_prompt + prompt
         response = generate_full_completion(GPT_MODEL, question)
         try:
