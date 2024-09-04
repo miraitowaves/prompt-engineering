@@ -13,7 +13,7 @@ def generate_full_completion(model: str, prompt: str) -> dict[str, str]:
         "http://localhost:11434/api/generate",
         headers={"Content-Type": "application/json"},
         data=json.dumps(params),
-        timeout=300,
+        timeout=1800, # 调整设置为1800，300限制过低
     )
     return json.loads(response.text)
 
@@ -158,3 +158,4 @@ def execute_fuc(tool_data):
 
 if __name__ == "__main__":
     main()
+
