@@ -3,9 +3,13 @@ import json
 import os
 import re
 
+import pandas as pd
 import requests
 from typing import get_type_hints
+import matplotlib.pyplot as plt
 
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用SimHei显示中文
+plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示为方块的问题
 
 def generate_full_completion(model: str, prompt: str) -> dict[str, str]:
     params = {"model": model, "prompt": prompt, "stream": False}
@@ -69,6 +73,32 @@ def write_csv_from_text(file_name: str) -> None:
         print(f"An error occurred while reading the file: {e}")
 
 
+def calculate_population_statistics(file_path: str) -> None:
+    """
+    Calculate the mean, maximum, and minimum population values for each region in the given CSV file.
+    """
+
+    # 获取当前文件所在目录的绝对路径
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 确定文件的完整路径（assets 文件夹中）
+    input_file_path = os.path.join(current_dir, '..', 'assets', file_path)
+
+    print(f"Reading the text file {input_file_path}...")
+    # 加载CSV文件
+    df = pd.read_csv(input_file_path)
+    
+    # 计算均值、最大值、最小值
+    df['均值'] = df.iloc[:, 1:].mean(axis=1)
+    df['最大值'] = df.iloc[:, 1:].max(axis=1)
+    df['最小值'] = df.iloc[:, 1:].min(axis=1)
+    
+    # 保存到新文件
+    new_file_path = input_file_path.replace('.csv', '_stats.csv')
+    df.to_csv(new_file_path, index=False, encoding='utf_8_sig')
+    
+    print(f"计算完成，结果已保存至 {new_file_path}")
+
 
 def get_type_name(t):
     name = str(t)
@@ -77,6 +107,80 @@ def get_type_name(t):
     else:
         return t.__name__
 
+def visualize_population_distribution(file_path: str) -> None:
+    """
+    Visualize the population distribution for the last 10 years as a pie chart for each region.
+    """
+    
+    # 获取当前文件所在目录的绝对路径
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 确定文件的完整路径（assets 文件夹中）
+    input_file_path = os.path.join(current_dir, '..', 'assets', file_path)
+
+    print(f"Reading the text file {input_file_path}...")
+    # 加载CSV文件
+    df = pd.read_csv(input_file_path)
+    
+    # 假设CSV文件的列是年份，第1列是地区名称，其余列是各年份的人口数据
+    years = df.columns[-10:]  # 取最后10列年份数据
+    df['平均人口'] = df[years].mean(axis=1)  # 计算近10年的平均人口
+    
+    # 可视化
+    plt.figure(figsize=(10, 7))
+    plt.pie(df['平均人口'], labels=df.iloc[:, 0], autopct='%1.1f%%', startangle=140)
+    plt.title('近10年各地区平均人口比例')
+    plt.axis('equal')  # 确保饼状图为圆形
+    plt.show()
+
+    print("可视化完成。")
+
+def visualize_population_trend(file_path: str, province_name: str) -> None:
+    """
+    Visualize the population trend for the last 10 years of a specific province as a line chart.
+    
+
+    Parameters:
+    - file_path: CSV文件的路径
+    - province_name: 省份的名称
+    """
+    
+    # 获取当前文件所在目录的绝对路径
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 确定文件的完整路径（assets 文件夹中）
+    input_file_path = os.path.join(current_dir, '..', 'assets', file_path)
+
+    print(f"Reading the text file {input_file_path}...")
+    # 加载CSV文件
+    df = pd.read_csv(input_file_path)
+    
+    # 查找对应省份的数据
+    province_data = df[df.iloc[:, 0] == province_name]
+    if province_data.empty:
+        print(f"未找到省份 {province_name} 的数据。")
+        return
+    
+    # 假设CSV文件的列是年份，第1列是地区名称，后面的列是各年份的人口数据
+    years = df.columns[-10:]  # 取最后10列年份数据
+    population_values = province_data[years].values.flatten()  # 获取该省份的近10年人口数据
+    
+    # 可视化 - 折线图
+    plt.figure(figsize=(10, 6))
+    plt.plot(years, population_values, marker='o', linestyle='-', color='b', label=province_name)
+    
+    plt.title(f'{province_name} 近10年人口变化趋势')
+    plt.xlabel('年份')
+    plt.ylabel('人口数量')
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.legend()
+
+    # 显示图表
+    plt.tight_layout()
+    plt.show()
+
+    print(f"省份 {province_name} 的人口变化趋势图已完成。")
 
 def function_to_json(func):
     signature = inspect.signature(func)
@@ -100,7 +204,9 @@ def main():
     functions_prompt = f"""
 You have access to the following tools:
 {function_to_json(write_csv_from_text)}
-
+{function_to_json(calculate_population_statistics)}
+{function_to_json(visualize_population_distribution)}
+{function_to_json(visualize_population_trend)}
 You must follow these instructions:
 Always select one or more of the above tools based on the user query
 If a tool is found, you must respond in the JSON format matching the following schema:
@@ -119,7 +225,10 @@ User Query:
     GPT_MODEL = "mistral:latest"
 
     prompts = [
-        "Read from the text file 'permanent_population.txt' and write as csv file: remove the table header and footer, save as a new CSV file",
+        # "Read from the text file 'permanent_population.txt' and write as csv file: remove the table header and footer, save as a new CSV file",
+        # "Calculate the mean, maximum, and minimum population values for each region in the given CSV file 'permanent_population_cleaned.csv'",
+        "Visualize the population distribution for the last 10 years in the given CSV file 'permanent_population_cleaned_stats.csv' as a pie chart",
+        # "Visualize the population trend for the last 10 years of '浙江省' in the given CSV file 'permanent_population_cleaned.csv' as a line chart",
     ]
 
     for prompt in prompts:
@@ -153,4 +262,3 @@ def execute_fuc(tool_data):
 
 if __name__ == "__main__":
     main()
-
