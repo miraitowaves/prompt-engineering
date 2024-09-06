@@ -9,18 +9,18 @@ from typing import get_type_hints
 import matplotlib.pyplot as plt
 import mpld3
 
+# Global Settings
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+
+
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用SimHei显示中文
 plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示为方块的问题
 
-def generate_full_completion(model: str, prompt: str) -> dict[str, str]:
-    params = {"model": model, "prompt": prompt, "stream": False}
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(params),
-        timeout=1800, # 调整设置为1800，300限制过低
-    )
-    return json.loads(response.text)
+
+# User-defined functions, used to be called by LLM(mistral-latest)
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
 
 def write_csv_from_text(file_name: str) -> None:
     """
@@ -101,13 +101,6 @@ def calculate_population_statistics(file_path: str) -> None:
     print(f"计算完成，结果已保存至 {new_file_path}")
 
 
-def get_type_name(t):
-    name = str(t)
-    if "list" in name or "dict" in name:
-        return name
-    else:
-        return t.__name__
-
 def visualize_population_distribution(file_path: str) -> None:
     """
     Visualize the population distribution for the last 10 years as a pie chart for each region.
@@ -142,6 +135,7 @@ def visualize_population_distribution(file_path: str) -> None:
         f.write(html_str)
 
     print("可视化完成。")
+
 
 def visualize_population_trend(file_path: str, province_name: str) -> None:
     """
@@ -196,6 +190,30 @@ def visualize_population_trend(file_path: str, province_name: str) -> None:
 
     print(f"省份 {province_name} 的人口变化趋势图已完成。")
 
+
+# General Functions
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+
+def generate_full_completion(model: str, prompt: str) -> dict[str, str]:
+    params = {"model": model, "prompt": prompt, "stream": False}
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(params),
+        timeout=1800, # 调整设置为1800，控制为半个小时
+    )
+    return json.loads(response.text)
+
+
+def get_type_name(t):
+    name = str(t)
+    if "list" in name or "dict" in name:
+        return name
+    else:
+        return t.__name__
+
+
 def function_to_json(func):
     signature = inspect.signature(func)
     type_hints = get_type_hints(func)
@@ -213,6 +231,23 @@ def function_to_json(func):
 
     return json.dumps(function_info, indent=2)
 
+def execute_fuc(tool_data):
+    func_name = tool_data["tool"]
+    func_input = tool_data["tool_input"]
+
+    # 获取全局命名空间中的函数对象
+    func = globals().get(func_name)
+
+    if func is not None and callable(func):
+        # 如果找到了函数并且是可调用的，调用它
+        func(**func_input)
+    else:
+        print(f"Unknown function: {func_name}")
+
+
+# Main Function
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
 
 def main():
     functions_prompt = f"""
@@ -260,19 +295,7 @@ User Query:
         print(f"Total duration: {int(response.get('total_duration')) / 1e9} seconds")
 
 
-def execute_fuc(tool_data):
-    func_name = tool_data["tool"]
-    func_input = tool_data["tool_input"]
-
-    # 获取全局命名空间中的函数对象
-    func = globals().get(func_name)
-
-    if func is not None and callable(func):
-        # 如果找到了函数并且是可调用的，调用它
-        func(**func_input)
-    else:
-        print(f"Unknown function: {func_name}")
-
-
 if __name__ == "__main__":
     main()
+
+
