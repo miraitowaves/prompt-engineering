@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 from typing import get_type_hints
 import matplotlib.pyplot as plt
+import mpld3
 
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用SimHei显示中文
 plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示为方块的问题
@@ -131,7 +132,14 @@ def visualize_population_distribution(file_path: str) -> None:
     plt.pie(df['平均人口'], labels=df.iloc[:, 0], autopct='%1.1f%%', startangle=140)
     plt.title('近10年各地区平均人口比例')
     plt.axis('equal')  # 确保饼状图为圆形
-    plt.show()
+    # plt.show()
+
+    # 使用mpld3将图表转换为HTML格式
+    html_str = mpld3.fig_to_html(plt.gcf())
+    output_file_path = os.path.join(current_dir,'..', 'assets', 'population_pie_chart.html')
+    print(output_file_path)
+    with open(output_file_path, "w", encoding='utf-8') as f:
+        f.write(html_str)
 
     print("可视化完成。")
 
@@ -178,7 +186,13 @@ def visualize_population_trend(file_path: str, province_name: str) -> None:
 
     # 显示图表
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    html_str = mpld3.fig_to_html(plt.gcf())
+    output_file_path = os.path.join(current_dir,'..', 'assets', 'population_line_chart.html')
+    print(output_file_path)
+    with open(output_file_path, "w", encoding='utf-8') as f:
+        f.write(html_str)
+
 
     print(f"省份 {province_name} 的人口变化趋势图已完成。")
 
@@ -225,10 +239,10 @@ User Query:
     GPT_MODEL = "mistral:latest"
 
     prompts = [
-        # "Read from the text file 'permanent_population.txt' and write as csv file: remove the table header and footer, save as a new CSV file",
-        # "Calculate the mean, maximum, and minimum population values for each region in the given CSV file 'permanent_population_cleaned.csv'",
+        "Read from the text file 'permanent_population.txt' and write as csv file: remove the table header and footer, save as a new CSV file",
+        "Calculate the mean, maximum, and minimum population values for each region in the given CSV file 'permanent_population_cleaned.csv'",
         "Visualize the population distribution for the last 10 years in the given CSV file 'permanent_population_cleaned_stats.csv' as a pie chart",
-        # "Visualize the population trend for the last 10 years of '浙江省' in the given CSV file 'permanent_population_cleaned.csv' as a line chart",
+        "Visualize the population trend for the last 10 years of '浙江省' in the given CSV file 'permanent_population_cleaned.csv' as a line chart",
     ]
 
     for prompt in prompts:
